@@ -1,17 +1,13 @@
 <?php
 
-$xml = makeApiRequest($_REQUEST);
-$parameters = parseXmlResponse($xml);
+function runScript() {
+    $xml = makeApiRequest($_REQUEST);
 
-var_dump($parameters);
+    $parameters = parseXmlResponse($xml);
 
-$db = initDBConnection([
-    'host' => 'localhost',
-    'port' => '3306',
-    'name' => 'vat',
-    'user' => 'root',
-    'password' => '',
-]);
+    storeXstVatIdCheck($parameters);
+    storeXstVatIdCheckRequestLogs($parameters);
+}
 
 /**
  * @param array $params
@@ -45,9 +41,17 @@ function parseXmlResponse(SimpleXMLElement $xml): array
     return $parsedParams;
 }
 
-function initDBConnection(array $dbConfig): PDO
+function initDBConnection(): PDO
 {
     try {
+        $dbConfig = [
+            'host' => 'localhost',
+            'port' => '3306',
+            'name' => 'vat',
+            'user' => 'root',
+            'password' => '',
+        ];
+
         $instance = new PDO(
             "mysql:host=" . $dbConfig['host']
             . ';port=' . $dbConfig['port']
@@ -65,3 +69,64 @@ function initDBConnection(array $dbConfig): PDO
         die;
     }
 }
+
+function storeXstVatIdCheck($data)
+{
+    try {
+        $db = initDBConnection();
+
+        $stm = $db->prepare(
+            'INSERT INTO xst_vat_id_check 
+                   (UstId_1, UstId_2, Firmenname, Ort, PLZ, Strasse)
+                   VALUES (?, ?, ?, ?, ?, ?)'
+        );
+
+        $stm->execute([
+            $data['UstId_1'],
+            $data['UstId_2'],
+            $data['Firmenname'],
+            $data['Ort'],
+            $data['PLZ'],
+            $data['Strasse']
+        ]);
+    } catch (\PDOException $e) {
+        throw new PDOException($e->getMessage());
+    }
+}
+
+function storeXstVatIdCheckRequestLogs($data)
+{
+    try {
+        $db = initDBConnection();
+
+        $stm = $db->prepare(
+            'INSERT INTO xst_vat_id_check_request_logs
+                   (UstId_1, UstId_2, ErrorCode, Druck, Erg_PLZ, Ort, Datum, PLZ, Erg_Ort,
+                   Uhrzeit, Erg_Name, Gueltig_ab, Gueltig_bis, Strasse, Firmenname, Erg_Str)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+
+        $stm->execute([
+            $data['UstId_1'],
+            $data['UstId_2'],
+            $data['ErrorCode'],
+            $data['Druck'],
+            $data['Erg_PLZ'],
+            $data['Ort'],
+            $data['Datum'],
+            $data['PLZ'],
+            $data['Erg_Ort'],
+            $data['Uhrzeit'],
+            $data['Erg_Name'],
+            $data['Gueltig_ab'],
+            $data['Gueltig_bis'],
+            $data['Strasse'],
+            $data['Firmenname'],
+            $data['Erg_Str']
+        ]);
+    } catch (\PDOException $e) {
+        throw new PDOException($e->getMessage());
+    }
+}
+
+runScript();
