@@ -1,5 +1,5 @@
 <?php
-
+phpinfo();
 try {
     runScript();
 } catch (Exception $e) {
@@ -130,9 +130,11 @@ function getExistingValidationJsonResult($UstId_2)
     try {
         $db = initDBConnection();
 
-        $stm = $db->prepare('SELECT * FROM xst_vat_id_check_request_logs WHERE UstId_2 = ? ORDER BY id DESC;');
+        $dateTime = (new DateTime())->modify("-1 day")->format('Y-m-d H:i:s');
 
-        $stm->execute([$UstId_2]);
+        $stm = $db->prepare('SELECT * FROM xst_vat_id_check_request_logs WHERE UstId_2 = ? AND lastChange > ? ORDER BY id DESC;');
+
+        $stm->execute([$UstId_2, $dateTime]);
 
         $result = $stm->fetch(PDO::FETCH_ASSOC);
 
