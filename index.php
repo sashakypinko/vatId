@@ -1,12 +1,39 @@
 <?php
 
-function runScript() {
-    $xml = makeApiRequest($_REQUEST);
+try {
+    runScript();
+} catch (Exception $e) {
+    echo $e->getMessage();
+}
 
-    $parameters = parseXmlResponse($xml);
+/**
+ * @return void
+ * @throws Exception
+ */
+function runScript()
+{
+    $existingValidationJsonResult = getExistingValidationJsonResult($_REQUEST['UstId_2']);
 
-    storeXstVatIdCheck($parameters);
-    storeXstVatIdCheckRequestLogs($parameters);
+    if($existingValidationJsonResult) {
+        jsonResponse([
+            'validationJsonResult' => json_decode($existingValidationJsonResult['validationJsonResult'], true),
+            'valid' => (bool)$existingValidationJsonResult['validVatId'],
+            'responseCode' => $existingValidationJsonResult['ErrorCode']
+        ]);
+    } else {
+        $userID = storeXstVatIdCheck($_REQUEST);
+
+        $xml = makeApiRequest($_REQUEST);
+        $response = parseXmlResponse($xml);
+
+        $isValid = storeXstVatIdCheckRequestLogs($response, $userID);
+
+        jsonResponse([
+            'validationJsonResult' => $response,
+            'valid' => $isValid,
+            'responseCode' => $response['ErrorCode']
+        ]);
+    }
 }
 
 /**
@@ -27,6 +54,17 @@ function makeApiRequest(array $params): SimpleXMLElement
 }
 
 /**
+ * @param array $data
+ * @return void
+ */
+function jsonResponse(array $data)
+{
+    header('Content-Type: application/json; charset=utf-8');
+
+    echo json_encode($data);
+}
+
+/**
  * @param stdClass $xml
  * @return array
  */
@@ -41,6 +79,23 @@ function parseXmlResponse(SimpleXMLElement $xml): array
     return $parsedParams;
 }
 
+/**
+ * @param $data
+ * @return bool
+ */
+function validateResponse(array $data): bool
+{
+    return (
+        $data['Erg_Name'] === 'A'
+        && $data['Erg_Ort'] === 'A'
+        && $data['Erg_PLZ'] === 'A'
+        && $data['Erg_Str'] === 'A'
+    );
+}
+
+/**
+ * @return PDO
+ */
 function initDBConnection(): PDO
 {
     try {
@@ -70,7 +125,28 @@ function initDBConnection(): PDO
     }
 }
 
-function storeXstVatIdCheck($data)
+function getExistingValidationJsonResult($UstId_2)
+{
+    try {
+        $db = initDBConnection();
+
+        $stm = $db->prepare('SELECT * FROM xst_vat_id_check_request_logs WHERE UstId_2 = ? ORDER BY id DESC;');
+
+        $stm->execute([$UstId_2]);
+
+        $result = $stm->fetch(PDO::FETCH_ASSOC);
+
+        return $result;
+    } catch (\PDOException $e) {
+        throw new PDOException($e->getMessage());
+    }
+}
+
+/**
+ * @param $data
+ * @return false|string
+ */
+function storeXstVatIdCheck(array $data)
 {
     try {
         $db = initDBConnection();
@@ -89,22 +165,31 @@ function storeXstVatIdCheck($data)
             $data['PLZ'],
             $data['Strasse']
         ]);
+
+        return $db->lastInsertId();
     } catch (\PDOException $e) {
         throw new PDOException($e->getMessage());
     }
 }
 
-function storeXstVatIdCheckRequestLogs($data)
+/**
+ * @param array $data
+ * @param int $userID
+ * @return bool
+ */
+function storeXstVatIdCheckRequestLogs(array $data, int $userID): bool
 {
     try {
         $db = initDBConnection();
 
         $stm = $db->prepare(
             'INSERT INTO xst_vat_id_check_request_logs
-                   (UstId_1, UstId_2, ErrorCode, Druck, Erg_PLZ, Ort, Datum, PLZ, Erg_Ort,
-                   Uhrzeit, Erg_Name, Gueltig_ab, Gueltig_bis, Strasse, Firmenname, Erg_Str)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                   (UstId_1, UstId_2, ErrorCode, Druck, Erg_PLZ, Ort, Datum, PLZ, Erg_Ort, Uhrzeit, Erg_Name,
+                    Gueltig_ab, Gueltig_bis, Strasse, Firmenname, Erg_Str, userID, validationJsonResult, validVatId)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
+
+        $isValid = validateResponse($data);
 
         $stm->execute([
             $data['UstId_1'],
@@ -122,11 +207,14 @@ function storeXstVatIdCheckRequestLogs($data)
             $data['Gueltig_bis'],
             $data['Strasse'],
             $data['Firmenname'],
-            $data['Erg_Str']
+            $data['Erg_Str'],
+            $userID,
+            json_encode($data),
+            $isValid
         ]);
+
+        return $isValid;
     } catch (\PDOException $e) {
         throw new PDOException($e->getMessage());
     }
 }
-
-runScript();
