@@ -20,9 +20,13 @@ function runHttpScript()
         $existingValidationJsonResult = getExistingValidationJsonResultByField('UstId_2', $_REQUEST['UstId_2']);
 
         if ($existingValidationJsonResult) {
+            $response = requestVatIdCheck($_REQUEST);
+
+            $isValid = storeXstVatIdCheckRequestLogs($response, $existingValidationJsonResult['userID']);
+
             jsonResponse([
-                'validationJsonResult' => json_decode($existingValidationJsonResult['validationJsonResult'], true),
-                'valid' => (bool)$existingValidationJsonResult['validVatId'],
+                'validationJsonResult' => $response,
+                'valid' => $isValid,
                 'responseCode' => $existingValidationJsonResult['ErrorCode']
             ]);
         } else {
@@ -80,13 +84,12 @@ function runCliScript()
  */
 function makeApiRequest(array $params): array
 {
-    $cURLConnection = curl_init('https://evaftr.bff-online.de/evatrRPC');
+    $cURLConnection = curl_init('https://evatr.bff-online.de/evatrRPC');
     curl_setopt($cURLConnection, CURLOPT_POSTFIELDS, $params);
     curl_setopt($cURLConnection, CURLOPT_RETURNTRANSFER, true);
 
     $apiResponse = curl_exec($cURLConnection);
-    $responseCode = curl_getinfo($cURLConnection);
-
+    $responseCode = curl_getinfo($cURLConnection)['http_code'];
     curl_close($cURLConnection);
 
     return [
