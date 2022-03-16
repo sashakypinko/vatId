@@ -28,6 +28,11 @@ function runHttpScript()
         } else {
             $userID = storeXstVatIdCheck($_REQUEST);
             $response = requestVatIdCheck($_REQUEST);
+
+            if(!$response) {
+                $response = $_REQUEST;
+            }
+
             $isValid = storeXstVatIdCheckRequestLogs($response, $userID);
 
             jsonResponse([
@@ -70,26 +75,35 @@ function runCliScript()
 
 /**
  * @param array $params
- * @return SimpleXMLElement
+ * @return array
  * @throws Exception
  */
-function makeApiRequest(array $params): SimpleXMLElement
+function makeApiRequest(array $params): array
 {
-    $cURLConnection = curl_init('https://evatr.bff-online.de/evatrRPC');
+    $cURLConnection = curl_init('https://evaftr.bff-online.de/evatrRPC');
     curl_setopt($cURLConnection, CURLOPT_POSTFIELDS, $params);
     curl_setopt($cURLConnection, CURLOPT_RETURNTRANSFER, true);
 
     $apiResponse = curl_exec($cURLConnection);
+    $responseCode = curl_getinfo($cURLConnection);
+
     curl_close($cURLConnection);
 
-    return new SimpleXMLElement($apiResponse);
+    return [
+        'body' => new SimpleXMLElement($apiResponse),
+        'code' => $responseCode
+    ];
 }
 
+/**
+ * @param $requestParams
+ * @return array|false|void
+ */
 function requestVatIdCheck($requestParams) {
     try {
-        $xml = makeApiRequest($requestParams);
+        $response = makeApiRequest($requestParams);
 
-        return parseXmlResponse($xml);
+        return $response['code'] === 200 ? parseXmlResponse($response['body']) : false;
     } catch (\Exception $e) {
         echo $e->getMessage();
     }
@@ -178,10 +192,10 @@ function validateUstId($UstId): bool
 function validateResponse(array $data): bool
 {
     return (
-        $data['Erg_Name'] === 'A'
-        && $data['Erg_Ort'] === 'A'
-        && $data['Erg_PLZ'] === 'A'
-        && $data['Erg_Str'] === 'A'
+        $data['Erg_Name'] ?? '' === 'A'
+        && $data['Erg_Ort'] ?? '' === 'A'
+        && $data['Erg_PLZ'] ?? '' === 'A'
+        && $data['Erg_Str'] ?? '' === 'A'
     );
 }
 
@@ -309,20 +323,20 @@ function storeXstVatIdCheckRequestLogs(array $data, int $userID): bool
         $stm->execute([
             $data['UstId_1'],
             $data['UstId_2'],
-            $data['ErrorCode'],
-            $data['Druck'],
-            $data['Erg_PLZ'],
-            $data['Ort'],
-            $data['Datum'],
-            $data['PLZ'],
-            $data['Erg_Ort'],
-            $data['Uhrzeit'],
-            $data['Erg_Name'],
-            $data['Gueltig_ab'],
-            $data['Gueltig_bis'],
-            $data['Strasse'],
-            $data['Firmenname'],
-            $data['Erg_Str'],
+            $data['ErrorCode'] ?? 999,
+            $data['Druck'] ?? '',
+            $data['Erg_PLZ'] ?? '',
+            $data['Ort'] ?? '',
+            $data['Datum'] ?? '',
+            $data['PLZ'] ?? '',
+            $data['Erg_Ort'] ?? '',
+            $data['Uhrzeit'] ?? '',
+            $data['Erg_Name'] ?? '',
+            $data['Gueltig_ab'] ?? '',
+            $data['Gueltig_bis'] ?? '',
+            $data['Strasse'] ?? '',
+            $data['Firmenname'] ?? '',
+            $data['Erg_Str'] ?? '',
             $userID,
             json_encode($data),
             $isValid
@@ -332,9 +346,4 @@ function storeXstVatIdCheckRequestLogs(array $data, int $userID): bool
     } catch (\PDOException $e) {
         throw new PDOException($e->getMessage());
     }
-}
-
-function dd($data) {
-    var_dump($data);
-//    die;
 }
