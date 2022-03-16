@@ -31,7 +31,7 @@ CREATE TABLE `xst_vat_id_check` (
   `PLZ` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `Strasse` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `lastChange` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `forceReCheck` timestamp NULL DEFAULT NULL,
+  `forceReCheck` tinyint(1) NOT NULL DEFAULT '0',
   `requestLogs` int DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

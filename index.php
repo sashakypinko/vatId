@@ -245,11 +245,9 @@ function getXstVatIdForReCheck()
     try {
         $db = initDBConnection();
 
-        $dateTime = (new DateTime)->format('Y-m-d H:i:s');
+        $stm = $db->prepare('SELECT * FROM xst_vat_id_check WHERE forceReCheck = 1;');
 
-        $stm = $db->prepare('SELECT * FROM xst_vat_id_check WHERE forceReCheck < ?;');
-
-        $stm->execute([$dateTime]);
+        $stm->execute();
 
         $result = $stm->fetchAll(PDO::FETCH_ASSOC);
 
