@@ -1,7 +1,11 @@
 <?php
-phpinfo();
+
 try {
-    runScript();
+    if (php_sapi_name() !== 'cli') {
+        runCliScript();
+    } else {
+        runHttpScript();
+    }
 } catch (Exception $e) {
     echo $e->getMessage();
 }
@@ -10,29 +14,57 @@ try {
  * @return void
  * @throws Exception
  */
-function runScript()
+function runHttpScript()
 {
-    $existingValidationJsonResult = getExistingValidationJsonResult($_REQUEST['UstId_2']);
+    if (validateRequest($_REQUEST)) {
+        $existingValidationJsonResult = getExistingValidationJsonResultByField('UstId_2', $_REQUEST['UstId_2']);
 
-    if($existingValidationJsonResult) {
-        jsonResponse([
-            'validationJsonResult' => json_decode($existingValidationJsonResult['validationJsonResult'], true),
-            'valid' => (bool)$existingValidationJsonResult['validVatId'],
-            'responseCode' => $existingValidationJsonResult['ErrorCode']
-        ]);
+        if ($existingValidationJsonResult) {
+            jsonResponse([
+                'validationJsonResult' => json_decode($existingValidationJsonResult['validationJsonResult'], true),
+                'valid' => (bool)$existingValidationJsonResult['validVatId'],
+                'responseCode' => $existingValidationJsonResult['ErrorCode']
+            ]);
+        } else {
+            $userID = storeXstVatIdCheck($_REQUEST);
+            $response = requestVatIdCheck($_REQUEST);
+            $isValid = storeXstVatIdCheckRequestLogs($response, $userID);
+
+            jsonResponse([
+                'validationJsonResult' => $response,
+                'valid' => $isValid,
+                'responseCode' => $response['ErrorCode']
+            ]);
+        }
     } else {
-        $userID = storeXstVatIdCheck($_REQUEST);
-
-        $xml = makeApiRequest($_REQUEST);
-        $response = parseXmlResponse($xml);
-
-        $isValid = storeXstVatIdCheckRequestLogs($response, $userID);
-
         jsonResponse([
-            'validationJsonResult' => $response,
-            'valid' => $isValid,
-            'responseCode' => $response['ErrorCode']
+            'error' => 'Request parameters are invalid!'
         ]);
+    }
+}
+
+function runCliScript()
+{
+    $vatIds = getXstVatIdForReCheck();
+
+    foreach ($vatIds as $vatId) {
+
+        $existingValidationJsonResult = getExistingValidationJsonResultByField('userID', $vatId['id']);
+
+        if($existingValidationJsonResult && $existingValidationJsonResult['validVatId']) {
+            continue;
+        }
+
+        $response = requestVatIdCheck([
+            'UstId_1' => $vatId['UstId_1'],
+            'UstId_2' => $vatId['UstId_2'],
+            'Firmenname' => $vatId['Firmenname'],
+            'Ort' => $vatId['Ort'],
+            'PLZ' => $vatId['PLZ'],
+            'Strasse' => $vatId['Strasse']
+        ]);
+
+        storeXstVatIdCheckRequestLogs($response, $vatId['id']);
     }
 }
 
@@ -51,6 +83,16 @@ function makeApiRequest(array $params): SimpleXMLElement
     curl_close($cURLConnection);
 
     return new SimpleXMLElement($apiResponse);
+}
+
+function requestVatIdCheck($requestParams) {
+    try {
+        $xml = makeApiRequest($requestParams);
+
+        return parseXmlResponse($xml);
+    } catch (\Exception $e) {
+        echo $e->getMessage();
+    }
 }
 
 /**
@@ -77,6 +119,56 @@ function parseXmlResponse(SimpleXMLElement $xml): array
     }
 
     return $parsedParams;
+}
+
+/**
+ * @param array $request
+ * @return bool
+ */
+function validateRequest(array $request): bool
+{
+
+    return (
+        validateUstId($request['UstId_1'])
+        && validateUstId($request['UstId_2'])
+        && validateSpecialChars($request['Firmenname'])
+        && validateSpecialChars($request['Ort'])
+        && validateSpecialChars($request['PLZ'])
+        && validateSpecialChars($request['Strasse'])
+        && validateEmptyField($request['Firmenname'])
+        && validateEmptyField($request['Ort'])
+    );
+}
+
+/**
+ * @param $field
+ * @return bool
+ */
+function validateEmptyField($field): bool
+{
+    return (bool)strlen($field);
+}
+
+/**
+ * @param $field
+ * @return bool
+ */
+function validateSpecialChars($field): bool
+{
+    preg_match("/[!$&\(\)?}{~]/", $field, $matches);
+
+    return empty($matches);
+}
+
+/**
+ * @param $UstId
+ * @return bool
+ */
+function validateUstId($UstId): bool
+{
+    preg_match("/^[A-Za-z]{2}[\d]{9}$/", $UstId, $matches);
+
+    return !empty($matches);
 }
 
 /**
@@ -125,18 +217,41 @@ function initDBConnection(): PDO
     }
 }
 
-function getExistingValidationJsonResult($UstId_2)
+/**
+ * @param $UstId_2
+ * @return mixed
+ */
+function getExistingValidationJsonResultByField($field, $value)
 {
     try {
         $db = initDBConnection();
 
         $dateTime = (new DateTime())->modify("-1 day")->format('Y-m-d H:i:s');
 
-        $stm = $db->prepare('SELECT * FROM xst_vat_id_check_request_logs WHERE UstId_2 = ? AND lastChange > ? ORDER BY id DESC;');
+        $stm = $db->prepare("SELECT * FROM xst_vat_id_check_request_logs WHERE $field = ? AND lastChange > ? ORDER BY id DESC;");
 
-        $stm->execute([$UstId_2, $dateTime]);
+        $stm->execute([$value, $dateTime]);
 
         $result = $stm->fetch(PDO::FETCH_ASSOC);
+
+        return $result;
+    } catch (\PDOException $e) {
+        throw new PDOException($e->getMessage());
+    }
+}
+
+function getXstVatIdForReCheck()
+{
+    try {
+        $db = initDBConnection();
+
+        $dateTime = (new DateTime)->format('Y-m-d H:i:s');
+
+        $stm = $db->prepare('SELECT * FROM xst_vat_id_check WHERE forceReCheck < ?;');
+
+        $stm->execute([$dateTime]);
+
+        $result = $stm->fetchAll(PDO::FETCH_ASSOC);
 
         return $result;
     } catch (\PDOException $e) {
@@ -219,4 +334,9 @@ function storeXstVatIdCheckRequestLogs(array $data, int $userID): bool
     } catch (\PDOException $e) {
         throw new PDOException($e->getMessage());
     }
+}
+
+function dd($data) {
+    var_dump($data);
+//    die;
 }
