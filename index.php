@@ -1,7 +1,7 @@
 <?php
 
 try {
-    if (php_sapi_name() !== 'cli') {
+    if (php_sapi_name() === 'cli') {
         runCliScript();
     } else {
         runHttpScript();
