@@ -24,17 +24,16 @@ DROP TABLE IF EXISTS `xst_vat_id_check`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `xst_vat_id_check` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `UstId_1` varchar(56) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `UstId_2` varchar(56) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Firmenname` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Ort` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `PLZ` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Strasse` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `UstId_1` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `UstId_2` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Firmenname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Ort` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `PLZ` varchar(15) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Strasse` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `lastChange` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `forceReCheck` tinyint(1) NOT NULL DEFAULT '0',
-  `requestLogs` int DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=79 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -55,30 +54,30 @@ DROP TABLE IF EXISTS `xst_vat_id_check_request_logs`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `xst_vat_id_check_request_logs` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `UstId_1` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `UstId_2` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Druck` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Erg_PLZ` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Ort` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Datum` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `PLZ` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Erg_Ort` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `UstId_1` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `UstId_2` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Druck` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Erg_PLZ` varchar(1) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Ort` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Datum` date DEFAULT NULL,
+  `PLZ` varchar(15) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Erg_Ort` varchar(1) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `Uhrzeit` time DEFAULT NULL,
-  `Erg_Name` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Gueltig_ab` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Gueltig_bis` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Strasse` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Firmenname` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Erg_Str` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Erg_Name` varchar(1) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Gueltig_ab` date DEFAULT NULL,
+  `Gueltig_bis` date DEFAULT NULL,
+  `Strasse` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Firmenname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Erg_Str` varchar(1) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `ErrorCode` int DEFAULT NULL,
   `userID` bigint NOT NULL,
   `lastChange` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `validationJsonResult` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `validationJsonResult` text COLLATE utf8mb4_general_ci,
   `validVatId` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `xst_vat_id_check_request_logs_userID_index` (`userID`),
   CONSTRAINT `xst_vat_id_check_request_logs_xst_vat_id_check_id_fk` FOREIGN KEY (`userID`) REFERENCES `xst_vat_id_check` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -99,4 +98,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-03-16 17:30:40
+-- Dump completed on 2022-03-17 16:09:22

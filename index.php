@@ -245,7 +245,11 @@ function getExistingValidationJsonResultByField($field, $value)
 
         $dateTime = (new DateTime())->modify("-1 day")->format('Y-m-d H:i:s');
 
-        $stm = $db->prepare("SELECT * FROM xst_vat_id_check_request_logs WHERE $field = ? AND lastChange > ? ORDER BY id DESC;");
+        $stm = $db->prepare("SELECT *,
+                                    DATE_FORMAT(Datum, '%d.%m.%Y') Datum,
+                                    DATE_FORMAT(Gueltig_ab, '%d.%m.%Y') Gueltig_ab,
+                                    DATE_FORMAT(Gueltig_bis, '%d.%m.%Y') Gueltig_bis
+                                    FROM xst_vat_id_check_request_logs WHERE $field = ? AND lastChange > ? ORDER BY id DESC;");
 
         $stm->execute([$value, $dateTime]);
 
