@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS `xst_vat_id_check`;
 CREATE TABLE `xst_vat_id_check` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `UstId_1` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `UstId_2` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `UstId_2` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `Firmenname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `Ort` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `PLZ` varchar(15) COLLATE utf8mb4_general_ci DEFAULT NULL,
@@ -55,8 +55,8 @@ DROP TABLE IF EXISTS `xst_vat_id_check_request_logs`;
 CREATE TABLE `xst_vat_id_check_request_logs` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `UstId_1` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `UstId_2` varchar(11) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Druck` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `UstId_2` varchar(40) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Druck` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `Erg_PLZ` varchar(1) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `Ort` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `Datum` date DEFAULT NULL,
